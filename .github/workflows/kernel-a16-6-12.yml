@@ -18,7 +18,7 @@ on:
         type: string
         default: ""
       clean_build:
-        description: "清洁构建 (禁用所有附加功能)"
+        description: "清洁构建 (不集成 KernelSU、SUSFS 和可选补丁)"
         required: false
         type: boolean
         default: false
@@ -74,6 +74,11 @@ on:
         required: false
         type: boolean
         default: false
+      build_bypass:
+        description: "同时构建普通内核和 Bypass 内核"
+        required: false
+        type: boolean
+        default: false
   workflow_call:
     inputs:
       clean_build:
@@ -116,6 +121,10 @@ on:
         type: string
         default: "off"
       droidspaces_ntsync:
+        required: false
+        type: boolean
+        default: false
+      build_bypass:
         required: false
         type: boolean
         default: false
@@ -163,7 +172,7 @@ jobs:
       kernel_version: "6.12"
       sub_level: ${{ matrix.sub_level }}
       os_patch_level: ${{ matrix.os_patch_level }}
-      ksu_variant: "ReSukiSU"
+      ksu_variant: ${{ inputs.clean_build && 'Clean' || 'ReSukiSU' }}
       ksu_branch: ${{ inputs.kernelsu_branch }}
       version: ${{ inputs.version || '' }}
       build_time: ${{ inputs.build_time || '' }}
@@ -175,9 +184,10 @@ jobs:
       enable_susfs: ${{ !inputs.cancel_susfs }}
       droidspaces: ${{ inputs.droidspaces || 'off' }}
       droidspaces_ntsync: ${{ inputs.droidspaces_ntsync || false }}
+      build_bypass: ${{ inputs.build_bypass || false }}
 
   # 3. 仅在直接触发时运行，从 main.yml 调用时跳过
   get-ksu-manager:
-    if: ${{ !inputs.called_from_main }}
+    if: ${{ !inputs.clean_build && !inputs.called_from_main }}
     uses: ./.github/workflows/get-manager.yml
     secrets: inherit
